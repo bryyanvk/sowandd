@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quiz das Equipes</title>
   <style>
     :root {
@@ -108,6 +108,12 @@
       cursor: pointer;
       font-weight: bold;
     }
+
+    .results {
+      margin-top: 2rem;
+      text-align: left;
+      font-size: 1rem;
+    }
   </style>
 </head>
 <body data-theme="light">
@@ -115,7 +121,7 @@
   <div class="container">
     <h1>Quiz das Equipes</h1>
     <button onclick="sortearEquipe()">Sortear Equipe</button>
-    
+
     <div class="question-box" id="question-box" style="display:none;">
       <h2 id="team-name"></h2>
       <p id="question"></p>
@@ -123,54 +129,102 @@
       <button onclick="validarResposta()">Enviar Resposta</button>
       <div class="feedback" id="feedback"></div>
     </div>
+
+    <div class="results" id="results"></div>
   </div>
 
   <script>
     const equipes = {
       "Equipe Emillin": {
         pergunta: "👉 Quais são as principais características do sistema de arquivos NTFS e por que ele é considerado mais seguro em comparação ao FAT32?",
-        resposta: "ntfs"
+        respostas: ["ntfs", "segurança", "permissões", "journaling"],
+        explicacao: "O NTFS é mais seguro por oferecer criptografia, permissões de acesso e journaling para evitar perdas."
       },
       "Equipe Ana Livia": {
         pergunta: "👉 Quais são as vantagens do sistema de arquivos EXT4 em relação ao EXT3 e por que ele é tão usado em distribuições Linux?",
-        resposta: "ext4"
+        respostas: ["ext4", "eficiência", "jornal", "performance"],
+        explicacao: "O EXT4 melhora o desempenho, suporta arquivos maiores e tem menos fragmentação em relação ao EXT3."
       },
       "Equipe Aila": {
         pergunta: "👉 De que forma os dados são armazenados em células de memória flash dentro de um SSD e como o processo de desgaste influencia sua vida útil?",
-        resposta: "ssd"
+        respostas: ["ssd", "flash", "células", "desgaste"],
+        explicacao: "SSDs usam memória flash NAND e sofrem desgaste com cada ciclo de escrita, o que limita sua vida útil."
       },
       "Equipe Danilo": {
         pergunta: "👉 Como funciona o processo de gravação de dados em um HD utilizando discos magnéticos e cabeças de leitura/escrita?",
-        resposta: "hd"
+        respostas: ["hd", "disco", "magnético", "cabeça"],
+        explicacao: "HDs utilizam discos giratórios magnéticos e cabeças que movem-se fisicamente para ler e gravar dados."
       }
     };
 
+    const pontuacoes = {};
+    const tempos = {};
     let equipeAtual = null;
+    let tempoInicial = null;
 
     function sortearEquipe() {
       const keys = Object.keys(equipes);
-      const sorteado = keys[Math.floor(Math.random() * keys.length)];
-      equipeAtual = sorteado;
+      equipeAtual = keys[Math.floor(Math.random() * keys.length)];
 
-      document.getElementById("team-name").innerText = `${sorteado}`;
-      document.getElementById("question").innerText = equipes[sorteado].pergunta;
+      document.getElementById("team-name").innerText = equipeAtual;
+      document.getElementById("question").innerText = equipes[equipeAtual].pergunta;
       document.getElementById("question-box").style.display = "block";
       document.getElementById("answer").value = "";
       document.getElementById("feedback").innerText = "";
+      document.getElementById("answer").disabled = false;
+
+      tempoInicial = Date.now(); // começa o timer
     }
 
     function validarResposta() {
       const resposta = document.getElementById("answer").value.trim().toLowerCase();
-      const correta = equipes[equipeAtual].resposta;
+      const corretas = equipes[equipeAtual].respostas;
+      const explicacao = equipes[equipeAtual].explicacao;
 
+      const acertou = corretas.some(palavra => resposta.includes(palavra));
       const feedback = document.getElementById("feedback");
-      if (resposta.includes(correta)) {
-        feedback.innerText = "✅ Resposta Correta!";
+
+      const tempoFinal = (Date.now() - tempoInicial) / 1000; // em segundos
+
+      if (!tempos[equipeAtual]) tempos[equipeAtual] = [];
+      tempos[equipeAtual].push(tempoFinal);
+
+      if (!pontuacoes[equipeAtual]) pontuacoes[equipeAtual] = 0;
+
+      if (acertou) {
+        pontuacoes[equipeAtual]++;
+        feedback.innerHTML = `✅ Resposta Correta!<br>⏱️ Tempo: ${tempoFinal.toFixed(2)}s<br>💡 Explicação: ${explicacao}`;
         feedback.className = "feedback correct";
       } else {
-        feedback.innerText = `❌ Resposta Errada! (Dica: está relacionada a ${correta.toUpperCase()})`;
+        feedback.innerHTML = `❌ Resposta Errada!<br>⏱️ Tempo: ${tempoFinal.toFixed(2)}s<br>💡 Explicação: ${explicacao}`;
         feedback.className = "feedback wrong";
       }
+
+      document.getElementById("answer").disabled = true;
+
+      mostrarResultados();
+    }
+
+    function mostrarResultados() {
+      let html = "<h3>📊 Resultados parciais:</h3><ul>";
+      for (const equipe in pontuacoes) {
+        const pontos = pontuacoes[equipe];
+        const media = calcularMedia(tempos[equipe]);
+        html += `<li><strong>${equipe}</strong>: ${pontos} ponto(s), média de resposta: ${media.toFixed(2)}s</li>`;
+      }
+      html += "</ul>";
+
+      // Ranking final (opcional)
+      const ranking = Object.entries(pontuacoes).sort((a, b) => b[1] - a[1]);
+      if (ranking.length > 1) {
+        html += `<p>🥇 Melhor equipe até agora: <strong>${ranking[0][0]}</strong></p>`;
+      }
+
+      document.getElementById("results").innerHTML = html;
+    }
+
+    function calcularMedia(arr) {
+      return arr.reduce((acc, val) => acc + val, 0) / arr.length;
     }
 
     function toggleTheme() {
